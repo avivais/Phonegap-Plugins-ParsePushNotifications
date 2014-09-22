@@ -42,12 +42,15 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 
         if (action.equalsIgnoreCase("register")){
 
-            //JSONObject params = args.optJSONObject(0);
+            JSONObject params = args.optJSONObject(0);
 
-            // Parse.initialize(getApplicationContext(), params.optString("appId",""), params.optString("clientKey", ""));
-            // PushService.setDefaultPushCallback(getApplicationContext() ,PushHandlerActivity.class);
-            // ParseInstallation.getCurrentInstallation().saveInBackground();
-
+			if(params != null)
+			{
+				Parse.initialize(getApplicationContext(), params.optString("appId",""), params.optString("clientKey", ""));
+				PushService.setDefaultPushCallback(getApplicationContext() ,PushHandlerActivity.class);
+				ParseInstallation.getCurrentInstallation().saveInBackground();
+			}
+			
             callbackContext.success();
 
             canDeliverNotifications = true;
@@ -73,7 +76,8 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
         else if (action.equalsIgnoreCase("getInstallationId")){
 
             // no installation tokens on android
-            callbackContext.success();
+			String parseInstallId = ParseInstallation.getCurrentInstallation().getInstallationId();
+            callbackContext.success(parseInstallId);
 
             return true;
         }
