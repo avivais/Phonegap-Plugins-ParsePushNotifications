@@ -17,9 +17,29 @@ import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 
+import android.content.pm.ActivityInfo;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.provider.Settings;
+import android.telephony.TelephonyManager;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import java.util.Collection;
 
 public class ParsePushNotificationPlugin extends CordovaPlugin {
     public static final String TAG = "ParsePushNotificationPlugin";
+	public static final String STORAGE_KEY = "com.ftwinteractive.smartdirect.storage";
+
 
     private static CordovaWebView gWebView;
 
@@ -34,6 +54,10 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
     private Context getApplicationContext() {
         return this.cordova.getActivity().getApplicationContext();
     }
+	
+	private Activity getActivity() {
+		return this.cordova.getActivity();
+	}
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
@@ -47,8 +71,11 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 			if(params != null)
 			{
 				Parse.initialize(getApplicationContext(), params.optString("appId",""), params.optString("clientKey", ""));
-				PushService.setDefaultPushCallback(getApplicationContext() ,PushHandlerActivity.class);
-				ParseInstallation.getCurrentInstallation().saveInBackground();
+				PushService.setDefaultPushCallback(getApplicationContext(), PushHandlerActivity.class);
+				ParseInstallation currentInstallation = ParseInstallation.getCurrentInstallation();
+
+				currentInstallation.put("endUserId", getUserId());
+				currentInstallation.saveInBackground();
 			}
 			
             callbackContext.success();
@@ -227,4 +254,138 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
     {
         return isInForeground;
     }
+	
+	
+	public boolean hasTelephony(Context mContext)
+    {
+        TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        if (tm == null)
+            return false;
+
+        //devices below are phones only
+        if (Build.VERSION.SDK_INT < 5)
+            return true;
+
+        PackageManager pm = mContext.getPackageManager();
+
+        if (pm == null)
+            return false;
+
+        boolean retval = false;
+        try
+        {
+            retval = pm.hasSystemFeature("android.hardware.telephony");
+        }
+        catch (Exception e)
+        {
+            retval = false;
+        }
+
+        return retval;
+    }
+	
+	public String getUserId(){
+
+        LocalStorage storage = new LocalStorage(this.cordova.getActivity(), ParsePushNotificationPlugin.STORAGE_KEY);
+        String androidId = storage.getItem("userId");
+
+        if(androidId != null){
+            return androidId;
+        }
+
+        androidId = Settings.Secure.getString(getActivity().getContentResolver(),Settings.Secure.ANDROID_ID);
+        // Another option is TechoTony's answer here: http://stackoverflow.com/questions/2322234/how-to-find-serial-number-of-android-device#2322494
+
+        Log.d(TAG, "Android id string = " + androidId);
+        if(androidId == null || androidId.equals("9774d56d682e549c")){
+            /* Many devices (and any emulator) such as the Droid 2 and Galaxy Tab report the same ID, so we need to construct a different one.
+                Phones (and possibly tablets with mobile data, though I'm not sure) will report a unique
+                id via the telephony provider.  Devices without telephony report a unique serial number.
+             */
+
+            Log.d(TAG,"Constructing new id");
+			 TelephonyManager telMgr = (TelephonyManager) getActivity().getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
+
+			 if(telMgr != null && hasTelephony(getActivity())){
+
+                androidId = telMgr.getDeviceId();
+            }
+            else{
+
+                /*
+                Serial Number
+                    Since Android 2.3 (“Gingerbread”) this is available via android.os.Build.SERIAL.
+                    Devices without telephony are required to report a unique device ID here; some phones may do so also.
+                 */
+                androidId = android.os.Build.SERIAL;
+            }
+
+            // We need to combine the device's id with the user's so that if the device is transferred
+            // to a different person we will get a new id.
+            /*
+            TODO this would be a better way to get the account,
+            but I couldn't quickly get google play services working,
+            which is required to use GoogleAuthUtil
+
+            Account[] accounts = mAccountManager.getAccountsByType(
+                    GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE);
+
+             */
+			AccountManager mAccountManager = AccountManager.get(getActivity());
+            Account[] accounts = mAccountManager.getAccountsByType("com.google");
+            Account account = accounts[0];
+
+            try {
+                MessageDigest digester = MessageDigest.getInstance("SHA-256");
+                digester.update(androidId.getBytes());
+                digester.update(account.name.getBytes());
+                byte[] hash = digester.digest();
+                // This has all kinds of unprintable characters, but it works
+                androidId = new String(hash);
+                Log.d(TAG,"Generated id " + androidId);
+            } catch (NoSuchAlgorithmException e1) {
+                // TODO automatically generated catch block
+                e1.printStackTrace();
+            }
+        }
+
+        storage.setItem("userId",androidId);
+        return androidId;
+    }
+}
+
+class LocalStorage {
+	
+	public static final String FIRST_RUN = "First_Run";
+	public static final String IS_DEVICE_REGISTERED = "Is_Device_Registered";
+	public static final String LOCATIONS_REVISION = "Locations_Revision";
+	public static final String IGNORED_LOCATIONS = "Ignored_Locations";
+	public static final String FAV_LOCATIONS = "Fav_Locations";
+	
+	public String prefName;
+	public SharedPreferences prefs;
+
+	public LocalStorage(Activity app, String prefName) {
+		this.prefName = prefName;
+		prefs = app.getSharedPreferences(prefName, 0);
+	}
+
+	public void setItem(String name, String value) {
+		SharedPreferences.Editor editor = prefs.edit();
+		if (value == null || value.length() == 0) {
+			editor.remove(name);
+		}
+		editor.putString(name, value);
+		editor.commit();
+	}
+
+	public String getItem(String name) {
+		return prefs.getString(name, null);
+	}
+
+	public void removeItem(String name) {
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.remove(name);
+		editor.commit();
+	}
 }
