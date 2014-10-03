@@ -32,6 +32,11 @@
 			exec(successCallback,errorCallback,pluginNativeName,'unsubscribeFromChannel',[channel]);
 		},
 		
+		getEndUserId : function(successCallback, errorCallback) {
+               
+			exec(successCallback,errorCallback,pluginNativeName,'getEndUserId',[]);
+		},
+		
                ontrigger : function(state, json){}
     };
 	

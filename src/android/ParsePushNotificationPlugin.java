@@ -142,6 +142,14 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 
             return true;
         }
+        else if (action.equalsIgnoreCase("getEndUserId")){
+
+            // no installation tokens on android
+			String endUserId = getUserId();
+            callbackContext.success(endUserId);
+
+            return true;
+        }
 
         return false;
     }
