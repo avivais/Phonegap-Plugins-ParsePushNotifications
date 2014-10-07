@@ -20,6 +20,7 @@
 - (void)register:(CDVInvokedUrlCommand*)command;
 - (void)unregister:(CDVInvokedUrlCommand*)command;
 - (void)getInstallationId:(CDVInvokedUrlCommand*)command;
+- (void)getEndUserId:(CDVInvokedUrlCommand*)command;
 
 - (void)getSubscriptions:(CDVInvokedUrlCommand*)command;
 - (void)subscribeToChannel:(CDVInvokedUrlCommand*)command;

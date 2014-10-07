@@ -8,6 +8,7 @@
 
 #import "ParsePushNotificationPlugin.h"
 #import <Parse/Parse.h>
+#import "SSKeychain.h"
 
 @implementation ParsePushNotificationPlugin
     
@@ -96,11 +97,31 @@
         [self.commandDelegate runInBackground:^{
             CDVPluginResult* pluginResult = nil;
             PFInstallation *currentInstallation = [PFInstallation currentInstallation];
-            NSString *objectId = currentInstallation.objectId;
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:objectId];
+            NSString *installId = currentInstallation.installationId;
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:installId];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         }];
     }
+- (void)getEndUserId:(CDVInvokedUrlCommand*) command
+    {
+        [self.commandDelegate runInBackground:^{
+            CDVPluginResult* pluginResult = nil;
+           
+            NSString *storedUUID = [SSKeychain passwordForService:@"com.perkins.ftwinteractive" account:@"perkins_user"];
+    		NSLog(@"Current UUID:  %@", storedUUID);
+		    if(nil == storedUUID){
+		        NSString *UUID = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+		
+		        NSLog(@"Storing %@ in keychain as UUID", UUID);
+		        [SSKeychain setPassword:UUID forService:@"com.perkins.ftwinteractive" account:@"perkins_user"];
+		        storedUUID = UUID;
+		    }
+           
+           
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:storedUUID];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        }];
+    }    
     
 - (void)getSubscriptions: (CDVInvokedUrlCommand *)command
     {
