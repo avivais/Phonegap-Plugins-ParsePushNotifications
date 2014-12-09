@@ -36,8 +36,12 @@
                
 			exec(successCallback,errorCallback,pluginNativeName,'getEndUserId',[]);
 		},
-		
-               ontrigger : function(state, json){}
+
+		getNotifications: function(successCallback, errorCallback) {
+			exec(successCallback,errorCallback,pluginNativeName,'getNotifications',[]);	
+		},
+
+		ontrigger : function(state, json){}
     };
 	
                

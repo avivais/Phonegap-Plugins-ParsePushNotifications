@@ -13,6 +13,7 @@
 @implementation ParsePushNotificationPlugin
 
 @synthesize callbackId;
+@synthesize pendingNotifications = _pendingNotifications;
 
 static NSDictionary *coldstartNotification;
 
@@ -40,6 +41,27 @@ BOOL canDeliverNotifications = NO;
    when they are fulfilled.
 
  */
+
+/* Holds the notifications data */
+- (NSMutableArray*)pendingNotifications {
+    if(_pendingNotifications == nil) {
+        _pendingNotifications = [[NSMutableArray alloc] init];
+    }
+    return _pendingNotifications;
+}
+
+/* Activates success callback with notifications as argument */
+- (void)getNotifications:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        CDVPluginResult* pluginResult = nil;
+        NSString *notificationJSON = [self.pendingNotifications JSONString];
+        
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:notificationJSON];
+        
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        [self.pendingNotifications removeAllObjects];
+    }];
+}
 
 +(void) load
 {
@@ -190,7 +212,7 @@ BOOL canDeliverNotifications = NO;
 - (void)didReceiveRemoteNotificationWithPayload: (NSDictionary *)payload
 {
         NSLog(@"didReceiveRemoteNotificationWithPayload received");
-
+        [self.pendingNotifications addObject:payload];
         NSDictionary *aps = [payload objectForKey:@"aps"];
         NSMutableDictionary *data = [[payload objectForKey:@"data"] mutableCopy];
 
