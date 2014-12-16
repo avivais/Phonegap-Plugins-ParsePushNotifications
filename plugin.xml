@@ -1,66 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-        id="com.stratogos.cordova.parsePushNotifications"
-        version="0.1.0">
-    <name>ParsePushNotifications</name>
-    <description>Cordova Parse Push Notification Plugin</description>
-    <author>Asi Farran</author>
-    <license>Apache 2.0</license>
-    <keywords>cordova,parse,push</keywords>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="com.stratogos.cordova.parsePushNotifications" version="0.2.0">
+	<name>ParsePushNotifications</name>
+	<description>Cordova Parse Push Notification Plugin</description>
+	<author>Asi Farran</author>
+	<license>Apache 2.0</license>
+	<keywords>cordova,parse,push</keywords>
 
-    <js-module src="www/parsePushNotifications.js" name="ParsePushNotifications">
-        <clobbers target="plugin.parse_push" />
-    </js-module>
+	<js-module src="www/parsePushNotifications.js" name="ParsePushNotifications">
+		<clobbers target="plugin.parse_push" />
+	</js-module>
 
-
-    <platform name="ios">
-
-        <config-file target="config.xml" parent="/*">
+	<platform name="ios">
+		<config-file target="config.xml" parent="/*">
 			<feature name="ParsePushNotificationPlugin">
 				<param name="ios-package" value="ParsePushNotificationPlugin" />
 			</feature>
-        </config-file>
-
+		</config-file>
 
 		<header-file src="src/ios/AppDelegate+parsePushNotification.h" />
-        <source-file src="src/ios/AppDelegate+parsePushNotification.m" />
+		<source-file src="src/ios/AppDelegate+parsePushNotification.m" />
 
 		<header-file src="src/ios/ParsePushNotificationPlugin.h" />
-        <source-file src="src/ios/ParsePushNotificationPlugin.m" />
+		<source-file src="src/ios/ParsePushNotificationPlugin.m" />
 
-	    <header-file src="src/ios/SSKeyChain/SSKeychain.h" />
-        <source-file src="src/ios/SSKeyChain/SSKeychain.m" />
-	    <header-file src="src/ios/SSKeyChain/SSKeychainQuery.h" />
-        <source-file src="src/ios/SSKeyChain/SSKeychainQuery.m" />
+		<header-file src="src/ios/SSKeyChain/SSKeychain.h" />
+		<source-file src="src/ios/SSKeyChain/SSKeychain.m" />
+		<header-file src="src/ios/SSKeyChain/SSKeychainQuery.h" />
+		<source-file src="src/ios/SSKeyChain/SSKeychainQuery.m" />
 
-        <framework src="libz.dylib" />
-        <framework src="Accounts.framework" />
-        <framework src="Social.framework" />
-        <framework src="AudioToolbox.framework" />
-        <framework src="CFNetwork.framework" />
+		<framework src="libz.dylib" />
+		<framework src="Accounts.framework" />
+		<framework src="Social.framework" />
+		<framework src="AudioToolbox.framework" />
+		<framework src="CFNetwork.framework" />
 		<framework src="CoreLocation.framework" />
 		<framework src="QuartzCore.framework" />
 		<framework src="Security.framework" />
 		<framework src="StoreKit.framework" />
 		<framework src="MobileCoreServices.framework" />
-        <framework src="SystemConfiguration.framework" />
+		<framework src="SystemConfiguration.framework" />
 		<framework src="src/ios/lib/Parse.framework" custom="true"/>
-		<!-- <framework src="src/ios/lib/parse-library-1.4.1/Bolts.framework" custom="true"/> -->
-
 		<resource-file src="src/ios/SSKeyChain/en.lproj/SSKeychain.strings"/>
+	</platform>
 
-    </platform>
-
-    <platform name="android">
-
-        <config-file target="config.xml" parent="/*">
+	<platform name="android">
+		<config-file target="config.xml" parent="/*">
 			<feature name="ParsePushNotificationPlugin">
 				<param name="android-package" value="com.stratogos.cordova.parsePushNotifications.ParsePushNotificationPlugin" />
 			</feature>
-        </config-file>
+		</config-file>
 
-        <config-file target="AndroidManifest.xml" parent="/manifest">
-
+		<config-file target="AndroidManifest.xml" parent="/manifest">
 			<permission android:protectionLevel="signature" android:name="$PACKAGE_NAME.permission.C2D_MESSAGE" />
 			<uses-permission android:name="$PACKAGE_NAME.permission.C2D_MESSAGE" />
 
@@ -71,40 +61,37 @@
 			<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 			<uses-permission android:name="android.permission.GET_ACCOUNTS" />
 			<uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
-
 		</config-file>
 
-        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+		<config-file target="AndroidManifest.xml" parent="/manifest/application">
+			<activity android:name="com.stratogos.cordova.parsePushNotifications.PushHandlerActivity"/>
 
-		    <activity android:name="com.stratogos.cordova.parsePushNotifications.PushHandlerActivity"/>
+			<service android:name="com.stratogos.cordova.parsePushNotifications.GCMIntentService"/>
+			<service android:name="com.parse.PushService" />
 
-		    <service android:name="com.stratogos.cordova.parsePushNotifications.GCMIntentService"/>
-		    <service android:name="com.parse.PushService" />
-
-		    <receiver android:name="com.parse.ParseBroadcastReceiver">
-		    	<intent-filter>
-		    			<action android:name="android.intent.action.BOOT_COMPLETED" />
+			<receiver android:name="com.parse.ParseBroadcastReceiver">
+				<intent-filter>
+						<action android:name="android.intent.action.BOOT_COMPLETED" />
 						<action android:name="android.intent.action.USER_PRESENT" />
 				</intent-filter>
-		    </receiver>
+			</receiver>
 
 
 			<receiver android:name="com.stratogos.cordova.parsePushNotifications.GCMReceiver">
-		    	<intent-filter>
-		        	<action android:name="com.google.android.c2dm.intent.RECEIVE" />
-		            <category android:name="$PACKAGE_NAME" />
+				<intent-filter>
+					<action android:name="com.google.android.c2dm.intent.RECEIVE" />
+					<category android:name="$PACKAGE_NAME" />
 				</intent-filter>
 			</receiver>
 
 
-		    <receiver android:name="com.parse.GcmBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND">
+			<receiver android:name="com.parse.GcmBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND">
 				<intent-filter >
-		        	<action android:name="com.google.android.c2dm.intent.RECEIVE" />
-		            <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
-		            <category android:name="$PACKAGE_NAME" />
+					<action android:name="com.google.android.c2dm.intent.RECEIVE" />
+					<action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+					<category android:name="$PACKAGE_NAME" />
 				</intent-filter>
 			</receiver>
-
 		</config-file>
 
 		<source-file src="src/android/GCMIntentService.java" target-dir="src/com/stratogos/cordova/parsePushNotifications/" />
@@ -114,7 +101,5 @@
 		<source-file src="src/android/ParseApplication.java" target-dir="src/com/stratogos/cordova/parsePushNotifications/" />
 		<source-file src="src/android/lib/android/gcm.jar" target-dir="libs/" framework="true" />
 		<source-file src="src/android/lib/parse/Parse-1.7.0/Parse-1.7.0.jar" target-dir="libs/" framework="true" />
-    </platform>
-
-
+	</platform>
 </plugin>
