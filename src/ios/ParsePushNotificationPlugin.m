@@ -213,12 +213,12 @@ BOOL canDeliverNotifications = NO;
 {
         NSLog(@"didReceiveRemoteNotificationWithPayload received");
         [self.pendingNotifications addObject:payload];
-        NSDictionary *aps = [payload objectForKey:@"aps"];
+        /*NSDictionary *aps = [payload objectForKey:@"aps"];
         NSMutableDictionary *data = [[payload objectForKey:@"data"] mutableCopy];
 
         if(data == nil) {
                 data = [[NSMutableDictionary alloc] init];
-        }
+        }*/
 
         /*
 
@@ -234,15 +234,16 @@ BOOL canDeliverNotifications = NO;
 
          */
 
-        if([aps objectForKey:@"alert"]) {
+        /*if([aps objectForKey:@"alert"]) {
                 if(![data objectForKey:@"message"]) {
                         [data setObject:[aps objectForKey:@"alert"] forKey:@"message"];
                 }
-        }
+        }*/
 
         BOOL receivedInForeground = [[payload objectForKey:@"receivedInForeground"] boolValue];
         NSString* stateName = receivedInForeground ? @"foreground" : @"background";
 
+        NSMutableDictionary *data = [[payload allKeys] mutableCopy];
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:NSJSONWritingPrettyPrinted error:nil];
 
         NSString *json = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
