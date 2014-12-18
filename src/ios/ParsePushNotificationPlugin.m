@@ -251,7 +251,7 @@ BOOL canDeliverNotifications = NO;
 
         NSLog(@"Msg: %@", json);
 
-        NSString * jsCallBack = [NSString stringWithFormat:@"setTimeout(function(){window.plugin.parse_push.ontrigger('%@', %@)},0)", stateName, json];
+        NSString * jsCallBack = [NSString stringWithFormat:@"setTimeout(function(){window.parsePush.ontrigger('%@', %@)},0)", stateName, json];
 
         if(receivedInForeground) {
                 [self.webView stringByEvaluatingJavaScriptFromString:jsCallBack];

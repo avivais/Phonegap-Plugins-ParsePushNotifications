@@ -7,7 +7,7 @@
 	<keywords>cordova,parse,push</keywords>
 
 	<js-module src="www/parsePushNotifications.js" name="ParsePushNotifications">
-		<clobbers target="plugin.parse_push" />
+		<clobbers target="window.parsePush" />
 	</js-module>
 
 	<platform name="ios">

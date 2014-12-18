@@ -207,7 +207,7 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 
         }catch(JSONException e){}
 
-        String js = "javascript:setTimeout(function(){window.plugin.parse_push.ontrigger('" + state + "',"+ json +")},0)";
+        String js = "javascript:setTimeout(function(){window.parsePush.ontrigger('" + state + "',"+ json +")},0)";
 
         if (canDeliverNotifications) {
             gWebView.sendJavascript(js);
