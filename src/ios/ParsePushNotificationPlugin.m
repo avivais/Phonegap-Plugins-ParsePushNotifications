@@ -243,8 +243,8 @@ BOOL canDeliverNotifications = NO;
         BOOL receivedInForeground = [[payload objectForKey:@"receivedInForeground"] boolValue];
         NSString* stateName = receivedInForeground ? @"foreground" : @"background";
 
-        NSMutableDictionary *data = [[payload allKeys] mutableCopy];
-        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:NSJSONWritingPrettyPrinted error:nil];
+        /*NSMutableDictionary *data = [[payload allKeys] mutableCopy];*/
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:payload options:NSJSONWritingPrettyPrinted error:nil];
 
         NSString *json = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 
