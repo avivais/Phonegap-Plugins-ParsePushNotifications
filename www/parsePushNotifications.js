@@ -28,7 +28,7 @@ ParsePushPlugin.prototype = {
 	},
 	isPushAllowed: function(successCallback, errorCallback ) {
 		exec(successCallback,errorCallback,pluginNativeName,'isPushAllowed',[]);
-	}
+	},
 	ontrigger : function(state, json){}
 };
 
