@@ -37,36 +37,36 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 
 public class ParsePushNotificationPlugin extends CordovaPlugin {
-    public static final String TAG = "ParsePushNotificationPlugin";
+	public static final String TAG = "ParsePushNotificationPlugin";
 	public static final String STORAGE_KEY = "com.ftwinteractive.smartdirect.storage";
 
+	private static CordovaWebView gWebView;
 
-    private static CordovaWebView gWebView;
+	private static boolean isInForeground = false;
+	private static boolean canDeliverNotifications = false;
+	private static ArrayList<String> callbackQueue = new ArrayList<String>();
+    private static JSONArray notifications = new JSONArray();
 
-    private static boolean isInForeground = false;
-    private static boolean canDeliverNotifications = false;
-    private static ArrayList<String> callbackQueue = new ArrayList<String>();
-
-    /**
-     * Gets the application context from cordova's main activity.
-     * @return the application context
-     */
-    private Context getApplicationContext() {
-        return this.cordova.getActivity().getApplicationContext();
-    }
+	/**
+	 * Gets the application context from cordova's main activity.
+	 * @return the application context
+	 */
+	private Context getApplicationContext() {
+		return this.cordova.getActivity().getApplicationContext();
+	}
 	
 	private Activity getActivity() {
 		return this.cordova.getActivity();
 	}
 
-    @Override
-    public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
+	@Override
+	public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
 
-        Log.v(TAG, "execute: action=" + action);
+		Log.v(TAG, "execute: action=" + action);
 
-        if (action.equalsIgnoreCase("register")){
+		if (action.equalsIgnoreCase("register")){
 
-            JSONObject params = args.optJSONObject(0);
+			JSONObject params = args.optJSONObject(0);
 
 			if(params != null)
 			{
@@ -78,288 +78,293 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 				currentInstallation.saveInBackground();
 			}
 			
-            callbackContext.success();
+			callbackContext.success();
 
-            canDeliverNotifications = true;
+			canDeliverNotifications = true;
 
-            cordova.getThreadPool().execute(new Runnable() {
-                @Override
-                public void run() {
-                    flushCallbackQueue();
-                }
-            });
+			cordova.getThreadPool().execute(new Runnable() {
+				@Override
+				public void run() {
+					flushCallbackQueue();
+				}
+			});
 
 
-            return true;
-        }
-        else if (action.equalsIgnoreCase("unregister")){
+			return true;
+		}
+		else if (action.equalsIgnoreCase("unregister")){
 
-            ParseInstallation.getCurrentInstallation().deleteInBackground();
+			ParseInstallation.getCurrentInstallation().deleteInBackground();
 
-            callbackContext.success();
+			callbackContext.success();
 
-            return true;
-        }
-        else if (action.equalsIgnoreCase("getInstallationId")){
+			return true;
+		}
+		else if (action.equalsIgnoreCase("getInstallationId")){
 
-            // no installation tokens on android
+			// no installation tokens on android
 			String parseInstallId = ParseInstallation.getCurrentInstallation().getInstallationId();
-            callbackContext.success(parseInstallId);
+			callbackContext.success(parseInstallId);
 
-            return true;
-        }
-        else if (action.equalsIgnoreCase("getSubscriptions")){
+			return true;
+		}
+		else if (action.equalsIgnoreCase("getSubscriptions")){
 
-            Set<String> channels = PushService.getSubscriptions(getApplicationContext());
+			Set<String> channels = PushService.getSubscriptions(getApplicationContext());
 
-            JSONArray subscriptions = new JSONArray();
+			JSONArray subscriptions = new JSONArray();
 
-            for(String c:channels){
-                subscriptions.put(c);
-            }
+			for(String c:channels){
+				subscriptions.put(c);
+			}
 
-            callbackContext.success(subscriptions);
+			callbackContext.success(subscriptions);
 
-            return true;
-        }
-        else if (action.equalsIgnoreCase("subscribeToChannel")){
+			return true;
+		}
+		else if (action.equalsIgnoreCase("subscribeToChannel")){
 
-            String channel = args.optString(0);
+			String channel = args.optString(0);
 
-            PushService.subscribe(getApplicationContext(),channel, PushHandlerActivity.class);
+			PushService.subscribe(getApplicationContext(),channel, PushHandlerActivity.class);
 
-            callbackContext.success();
+			callbackContext.success();
 
-            return true;
-        }
-        else if (action.equalsIgnoreCase("unsubscribeFromChannel")){
+			return true;
+		}
+		else if (action.equalsIgnoreCase("unsubscribeFromChannel")){
 
-            String channel = args.optString(0);
+			String channel = args.optString(0);
 
-            PushService.unsubscribe(getApplicationContext(), channel);
+			PushService.unsubscribe(getApplicationContext(), channel);
 
-            callbackContext.success();
+			callbackContext.success();
 
-            return true;
-        }
-        else if (action.equalsIgnoreCase("getEndUserId")){
+			return true;
+		}
+		else if (action.equalsIgnoreCase("getEndUserId")){
 
-            // no installation tokens on android
+			// no installation tokens on android
 			String endUserId = getUserId();
-            callbackContext.success(endUserId);
+			callbackContext.success(endUserId);
 
+			return true;
+		}
+        else if (action.equalsIgnoreCase("getnotifications")) {
+            callbackContext.success(notifications);
+            notifications = new JSONArray();
             return true;
         }
 
-        return false;
-    }
+		return false;
+	}
 
-    /*
-     * Sends a json object to the client as parameter to a method which is defined in gECB.
-     */
-    public static void NotificationReceived(String json, boolean receivedInForeground) {
+	/*
+	 * Sends a json object to the client as parameter to a method which is defined in gECB.
+	 */
+	public static void NotificationReceived(String json, boolean receivedInForeground, boolean coldStart) {
 
-        String state = receivedInForeground ? "foreground" : "background";
+		String state = receivedInForeground ? "foreground" : "background";
 
-        Log.v(TAG, "state: " + state + ", json:" + json);
-
-
-        /*
-
-         THE following is the comment from the iOS version explaining the motivation for copying the 'alert'
-         files into data.message in case there is no explicit one set.
-
-         on Android this isn't really needed but we keep it so the behavior is identical on both platforms.
-
-         -------------------
-
-         on iOS we must have the alert field set on the wrapping aps hash. in addition as we have severe
-         limitation on the size of the payload we would normally avoid duplicating the notification text
-         in both the aps wrapper and the payload object itself.
-
-         in order to keep the interface identical between platforms
-         the aps.alert value is required in order for the ios notification center to have something to show
-         or else it wouls show the full JSON payload.
-
-         however on the js side we want to access all the properties for this notification inside a single
-         object and care not for ios specific implemenataion such as the aps wrapper
-
-         we could just duplicate the text and have it in both *aps.alert* and inside data.message but as the
-         payload size limit is only 256 bytes it is better to check if an explicit data.message value exists
-         and if not just copy aps.alert into it
-
-         */
-
-        try
-        {
-            JSONObject wrapper = new JSONObject(json);
-            JSONObject data = wrapper.getJSONObject("data");
-
-            if(data != null){
-                if(data.has("message") == false){
-                    if(wrapper.has("alert")){
-                        data.put("message", wrapper.getString("alert"));
-                    }
-                }
-            }
-
-            json = data.toString();
-
-        }catch(JSONException e){}
-
-        String js = "javascript:setTimeout(function(){window.parsePush.ontrigger('" + state + "',"+ json +")},0)";
-
-        if (canDeliverNotifications) {
-            gWebView.sendJavascript(js);
-        }else{
-            callbackQueue.add(js);
-        }
-
-    }
+		Log.v(TAG, "state: " + state + ", json:" + json + ", coldStart: " + coldStart);
 
 
-    @Override
-    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
-        super.initialize(cordova, webView);
-        gWebView = webView;
-        isInForeground = true;
-    }
+		/*
+
+		 THE following is the comment from the iOS version explaining the motivation for copying the 'alert'
+		 files into data.message in case there is no explicit one set.
+
+		 on Android this isn't really needed but we keep it so the behavior is identical on both platforms.
+
+		 -------------------
+
+		 on iOS we must have the alert field set on the wrapping aps hash. in addition as we have severe
+		 limitation on the size of the payload we would normally avoid duplicating the notification text
+		 in both the aps wrapper and the payload object itself.
+
+		 in order to keep the interface identical between platforms
+		 the aps.alert value is required in order for the ios notification center to have something to show
+		 or else it wouls show the full JSON payload.
+
+		 however on the js side we want to access all the properties for this notification inside a single
+		 object and care not for ios specific implemenataion such as the aps wrapper
+
+		 we could just duplicate the text and have it in both *aps.alert* and inside data.message but as the
+		 payload size limit is only 256 bytes it is better to check if an explicit data.message value exists
+		 and if not just copy aps.alert into it
+
+		 */
+
+		try
+		{
+			JSONObject wrapper = new JSONObject(json);
+			JSONObject data = wrapper.getJSONObject("data");
+
+			if(data != null){
+				if(data.has("message") == false){
+					if(wrapper.has("alert")){
+						data.put("message", wrapper.getString("alert"));
+					}
+				}
+			}
+
+			json = data.toString();
+
+		} catch(JSONException e){}
+
+		String js = "javascript:setTimeout(function(){window.parsePush.ontrigger('" + state + "',"+ json +")},0)";
+
+		if (canDeliverNotifications && !coldStart) {
+			gWebView.sendJavascript(js);
+		} else{
+			callbackQueue.add(js);
+		}
+
+	}
 
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        gWebView = null;
-        isInForeground = false;
-    }
+	@Override
+	public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+		super.initialize(cordova, webView);
+		gWebView = webView;
+		isInForeground = true;
+	}
 
-    @Override
-    public void onPause(boolean multitasking) {
-        super.onPause(multitasking);
-        isInForeground = false;
-    }
 
-    @Override
-    public void onResume(boolean multitasking) {
-        super.onResume(multitasking);
-        isInForeground = true;
-    }
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		gWebView = null;
+		isInForeground = false;
+	}
 
-    private void flushCallbackQueue(){
-        for(String js : callbackQueue){
-            gWebView.sendJavascript(js);
-        }
+	@Override
+	public void onPause(boolean multitasking) {
+		super.onPause(multitasking);
+		isInForeground = false;
+	}
 
-        callbackQueue.clear();
-    }
+	@Override
+	public void onResume(boolean multitasking) {
+		super.onResume(multitasking);
+		isInForeground = true;
+	}
 
-    public static boolean isActive()
-    {
-        return gWebView != null;
-    }
+	private void flushCallbackQueue(){
+		for(String js : callbackQueue){
+			gWebView.sendJavascript(js);
+		}
 
-    public static boolean isInForeground()
-    {
-        return isInForeground;
-    }
+		callbackQueue.clear();
+	}
+
+	public static boolean isActive()
+	{
+		return gWebView != null;
+	}
+
+	public static boolean isInForeground()
+	{
+		return isInForeground;
+	}
 	
 	
 	public boolean hasTelephony(Context mContext)
-    {
-        TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
-        if (tm == null)
-            return false;
+	{
+		TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+		if (tm == null)
+			return false;
 
-        //devices below are phones only
-        if (Build.VERSION.SDK_INT < 5)
-            return true;
+		//devices below are phones only
+		if (Build.VERSION.SDK_INT < 5)
+			return true;
 
-        PackageManager pm = mContext.getPackageManager();
+		PackageManager pm = mContext.getPackageManager();
 
-        if (pm == null)
-            return false;
+		if (pm == null)
+			return false;
 
-        boolean retval = false;
-        try
-        {
-            retval = pm.hasSystemFeature("android.hardware.telephony");
-        }
-        catch (Exception e)
-        {
-            retval = false;
-        }
+		boolean retval = false;
+		try
+		{
+			retval = pm.hasSystemFeature("android.hardware.telephony");
+		}
+		catch (Exception e)
+		{
+			retval = false;
+		}
 
-        return retval;
-    }
+		return retval;
+	}
 	
 	public String getUserId(){
 
-        LocalStorage storage = new LocalStorage(this.cordova.getActivity(), ParsePushNotificationPlugin.STORAGE_KEY);
-        String androidId = storage.getItem("userId");
+		LocalStorage storage = new LocalStorage(this.cordova.getActivity(), ParsePushNotificationPlugin.STORAGE_KEY);
+		String androidId = storage.getItem("userId");
 
-        if(androidId != null){
-            return androidId;
-        }
+		if(androidId != null){
+			return androidId;
+		}
 
-        androidId = Settings.Secure.getString(getActivity().getContentResolver(),Settings.Secure.ANDROID_ID);
-        // Another option is TechoTony's answer here: http://stackoverflow.com/questions/2322234/how-to-find-serial-number-of-android-device#2322494
+		androidId = Settings.Secure.getString(getActivity().getContentResolver(),Settings.Secure.ANDROID_ID);
+		// Another option is TechoTony's answer here: http://stackoverflow.com/questions/2322234/how-to-find-serial-number-of-android-device#2322494
 
-        Log.d(TAG, "Android id string = " + androidId);
-        if(androidId == null || androidId.equals("9774d56d682e549c")){
-            /* Many devices (and any emulator) such as the Droid 2 and Galaxy Tab report the same ID, so we need to construct a different one.
-                Phones (and possibly tablets with mobile data, though I'm not sure) will report a unique
-                id via the telephony provider.  Devices without telephony report a unique serial number.
-             */
+		Log.d(TAG, "Android id string = " + androidId);
+		if(androidId == null || androidId.equals("9774d56d682e549c")){
+			/* Many devices (and any emulator) such as the Droid 2 and Galaxy Tab report the same ID, so we need to construct a different one.
+				Phones (and possibly tablets with mobile data, though I'm not sure) will report a unique
+				id via the telephony provider.  Devices without telephony report a unique serial number.
+			 */
 
-            Log.d(TAG,"Constructing new id");
+			Log.d(TAG,"Constructing new id");
 			 TelephonyManager telMgr = (TelephonyManager) getActivity().getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
 
 			 if(telMgr != null && hasTelephony(getActivity())){
 
-                androidId = telMgr.getDeviceId();
-            }
-            else{
+				androidId = telMgr.getDeviceId();
+			}
+			else{
 
-                /*
-                Serial Number
-                    Since Android 2.3 (“Gingerbread”) this is available via android.os.Build.SERIAL.
-                    Devices without telephony are required to report a unique device ID here; some phones may do so also.
-                 */
-                androidId = android.os.Build.SERIAL;
-            }
+				/*
+				Serial Number
+					Since Android 2.3 (“Gingerbread”) this is available via android.os.Build.SERIAL.
+					Devices without telephony are required to report a unique device ID here; some phones may do so also.
+				 */
+				androidId = android.os.Build.SERIAL;
+			}
 
-            // We need to combine the device's id with the user's so that if the device is transferred
-            // to a different person we will get a new id.
-            /*
-            TODO this would be a better way to get the account,
-            but I couldn't quickly get google play services working,
-            which is required to use GoogleAuthUtil
+			// We need to combine the device's id with the user's so that if the device is transferred
+			// to a different person we will get a new id.
+			/*
+			TODO this would be a better way to get the account,
+			but I couldn't quickly get google play services working,
+			which is required to use GoogleAuthUtil
 
-            Account[] accounts = mAccountManager.getAccountsByType(
-                    GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE);
+			Account[] accounts = mAccountManager.getAccountsByType(
+					GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE);
 
-             */
+			 */
 			AccountManager mAccountManager = AccountManager.get(getActivity());
-            Account[] accounts = mAccountManager.getAccountsByType("com.google");
-            Account account = accounts[0];
+			Account[] accounts = mAccountManager.getAccountsByType("com.google");
+			Account account = accounts[0];
 
-            try {
-                MessageDigest digester = MessageDigest.getInstance("SHA-256");
-                digester.update(androidId.getBytes());
-                digester.update(account.name.getBytes());
-                byte[] hash = digester.digest();
-                // This has all kinds of unprintable characters, but it works
-                androidId = new String(hash);
-                Log.d(TAG,"Generated id " + androidId);
-            } catch (NoSuchAlgorithmException e1) {
-                // TODO automatically generated catch block
-                e1.printStackTrace();
-            }
-        }
+			try {
+				MessageDigest digester = MessageDigest.getInstance("SHA-256");
+				digester.update(androidId.getBytes());
+				digester.update(account.name.getBytes());
+				byte[] hash = digester.digest();
+				// This has all kinds of unprintable characters, but it works
+				androidId = new String(hash);
+				Log.d(TAG,"Generated id " + androidId);
+			} catch (NoSuchAlgorithmException e1) {
+				// TODO automatically generated catch block
+				e1.printStackTrace();
+			}
+		}
 
-        storage.setItem("userId",androidId);
-        return androidId;
-    }
+		storage.setItem("userId",androidId);
+		return androidId;
+	}
 }
 
 class LocalStorage {

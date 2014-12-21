@@ -35,7 +35,7 @@ public class GCMIntentService extends GCMBaseIntentService {
 
         //do nothing with notifications arriving while we are not focused. we'll respond to them in the activity that gets the user click
         if(ParsePushNotificationPlugin.isInForeground()){
-            ParsePushNotificationPlugin.NotificationReceived(intent.getExtras().getString("data"), true);
+            ParsePushNotificationPlugin.NotificationReceived(intent.getExtras().getString("data"), true, false);
         }
     }
 

@@ -28,12 +28,12 @@ public class PushHandlerActivity extends Activity
         super.onCreate(savedInstanceState);
         Log.v(TAG, "onCreate");
 
-        boolean isPushPluginActive = ParsePushNotificationPlugin.isActive();
-        processPushBundle();
+        boolean isPluginActive = ParsePushNotificationPlugin.isActive();
+        processPushBundle(isPluginActive);
 
         finish();
 
-        if (!isPushPluginActive) {
+        if (!isPluginActive) {
             forceMainActivityReload();
         }
     }
@@ -42,13 +42,13 @@ public class PushHandlerActivity extends Activity
      * Takes the pushBundle extras from the intent,
      * and sends it through to the Plugin for processing.
      */
-    private void processPushBundle()
+    private void processPushBundle(boolean isPluginActive)
     {
+        Log.v(TAG, "processPushBundle, isActive: " + isPluginActive);
         Bundle extras = getIntent().getExtras();
 
         if (extras != null)	{
-
-            ParsePushNotificationPlugin.NotificationReceived(extras.getString("com.parse.Data"), false);
+            ParsePushNotificationPlugin.NotificationReceived(extras.getString("com.parse.Data"), false, !isPluginActive);
         }
     }
 
