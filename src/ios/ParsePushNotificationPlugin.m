@@ -63,6 +63,39 @@ BOOL canDeliverNotifications = NO;
     }];
 }
 
+- (void)isPushAllowed:(CDVInvokedUrlCommand*)command {
+    CDVPluginResult* pluginResult = nil;
+
+    UIRemoteNotificationType rnType = UIRemoteNotificationTypeNone;
+    UIUserNotificationSettings* settings = nil;
+    UIUserNotificationType unType = UIUserNotificationTypeNone;
+
+    if ([[UIApplication sharedApplication] respondsToSelector:@selector(isRegisteredForRemoteNotifications)]){
+        // iOS = 8
+        settings = [[UIApplication sharedApplication] currentUserNotificationSettings];
+        unType = settings.types;
+        if (unType == UIUserNotificationTypeNone) {
+            NSLog(@"Push is disabled");
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Push is disabled"];
+        } else {
+            NSLog(@"Push is enabled");
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"Push is enabled"];
+        }
+    }
+    else {
+        rnType = [[UIApplication sharedApplication] enabledRemoteNotificationTypes];
+        if (rnType == UIRemoteNotificationTypeNone) {
+            NSLog(@"Push is disabled");
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Push is disabled"];
+        } else {
+            NSLog(@"Push is enabled");
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"Push is enabled"];
+        }
+    }
+
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
 +(void) load
 {
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(checkForColdStartNotification:)

@@ -23,6 +23,7 @@
 - (void)getSubscriptions:(CDVInvokedUrlCommand*)command;
 - (void)subscribeToChannel:(CDVInvokedUrlCommand*)command;
 - (void)unsubscribeFromChannel:(CDVInvokedUrlCommand*)command;
+- (void)isPushAllowed:(CDVInvokedUrlCommand*)command;
 - (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken;
 - (void)didFailToRegisterForRemoteNotificationsWithError:(NSError *)error;
 - (void)didReceiveRemoteNotificationWithPayload:(NSDictionary *)payload;

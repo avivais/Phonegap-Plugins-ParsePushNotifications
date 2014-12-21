@@ -26,6 +26,9 @@ ParsePushPlugin.prototype = {
 	getNotifications: function(successCallback, errorCallback) {
 		exec(successCallback,errorCallback,pluginNativeName,'getNotifications',[]);
 	},
+	isPushAllowed: function(successCallback, errorCallback ) {
+		exec(successCallback,errorCallback,pluginNativeName,'isPushAllowed',[]);
+	}
 	ontrigger : function(state, json){}
 };
 
