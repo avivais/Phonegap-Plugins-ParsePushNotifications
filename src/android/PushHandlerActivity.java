@@ -5,11 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
-import com.parse.Parse;
-import com.parse.ParseException;
-import com.parse.ParseInstallation;
-import com.parse.PushService;
-import org.json.JSONObject;
+import com.parse.ParseAnalytics;
 
 public class PushHandlerActivity extends Activity
 {
@@ -24,10 +20,10 @@ public class PushHandlerActivity extends Activity
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
-
         super.onCreate(savedInstanceState);
         Log.v(TAG, "onCreate");
 
+        ParseAnalytics.trackAppOpenedInBackground(getIntent());
         boolean isPluginActive = ParsePushNotificationPlugin.isActive();
         processPushBundle(isPluginActive);
 
@@ -47,7 +43,7 @@ public class PushHandlerActivity extends Activity
         Log.v(TAG, "processPushBundle, isActive: " + isPluginActive);
         Bundle extras = getIntent().getExtras();
 
-        if (extras != null)	{
+        if (extras != null) {
             ParsePushNotificationPlugin.NotificationReceived(extras.getString("com.parse.Data"), false, !isPluginActive);
         }
     }

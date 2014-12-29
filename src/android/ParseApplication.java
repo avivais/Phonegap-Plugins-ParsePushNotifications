@@ -2,8 +2,9 @@ package com.stratogos.cordova.parsePushNotifications;
 
 import android.app.Application;
 import com.parse.Parse;
+import com.parse.ParseUser;
+import com.parse.ParseACL;
 import com.parse.ParseInstallation;
-import com.parse.PushService;
 
 public class ParseApplication extends Application {
 
@@ -13,7 +14,9 @@ public class ParseApplication extends Application {
 
     public void onCreate(){
         Parse.initialize(getApplicationContext(), "appId", "clientKey");
-        PushService.setDefaultPushCallback(getApplicationContext(), PushHandlerActivity.class);
         ParseInstallation.getCurrentInstallation().saveInBackground();
+        ParseUser.enableAutomaticUser();
+        ParseACL defaultACL = new ParseACL();
+        ParseACL.setDefaultACL(defaultACL, true);
     }
 }

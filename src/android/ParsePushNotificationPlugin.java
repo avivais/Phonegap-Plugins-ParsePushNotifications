@@ -1,7 +1,6 @@
 package com.stratogos.cordova.parsePushNotifications;
 
-import java.util.Set;
-
+import java.util.List;
 import java.util.ArrayList;
 import com.parse.*;
 import org.json.JSONArray;
@@ -9,7 +8,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.os.Bundle;
 import android.util.Log;
 
 import org.apache.cordova.CordovaInterface;
@@ -17,24 +15,17 @@ import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 
-import android.content.pm.ActivityInfo;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Activity;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import java.util.Collection;
 
 public class ParsePushNotificationPlugin extends CordovaPlugin {
 	public static final String TAG = "ParsePushNotificationPlugin";
@@ -61,93 +52,63 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 
 	@Override
 	public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
-
 		Log.v(TAG, "execute: action=" + action);
 
 		if (action.equalsIgnoreCase("register")){
-
 			JSONObject params = args.optJSONObject(0);
-
 			if(params != null)
 			{
 				Parse.initialize(getApplicationContext(), params.optString("appId",""), params.optString("clientKey", ""));
-				PushService.setDefaultPushCallback(getApplicationContext(), PushHandlerActivity.class);
 				ParseInstallation currentInstallation = ParseInstallation.getCurrentInstallation();
-
 				currentInstallation.put("endUserId", getUserId());
 				currentInstallation.saveInBackground();
 			}
-			
 			callbackContext.success();
-
 			canDeliverNotifications = true;
-
 			cordova.getThreadPool().execute(new Runnable() {
 				@Override
 				public void run() {
 					flushCallbackQueue();
 				}
 			});
-
-
 			return true;
 		}
 		else if (action.equalsIgnoreCase("unregister")){
-
 			ParseInstallation.getCurrentInstallation().deleteInBackground();
-
 			callbackContext.success();
-
 			return true;
 		}
 		else if (action.equalsIgnoreCase("getInstallationId")){
-
 			// no installation tokens on android
 			String parseInstallId = ParseInstallation.getCurrentInstallation().getInstallationId();
 			callbackContext.success(parseInstallId);
-
 			return true;
 		}
 		else if (action.equalsIgnoreCase("getSubscriptions")){
-
-			Set<String> channels = PushService.getSubscriptions(getApplicationContext());
-
+			List<String> channels = ParseInstallation.getCurrentInstallation().getList("channels");
 			JSONArray subscriptions = new JSONArray();
-
 			for(String c:channels){
 				subscriptions.put(c);
 			}
-
 			callbackContext.success(subscriptions);
-
 			return true;
 		}
 		else if (action.equalsIgnoreCase("subscribeToChannel")){
-
 			String channel = args.optString(0);
-
-			PushService.subscribe(getApplicationContext(),channel, PushHandlerActivity.class);
-
+			ParsePush.subscribeInBackground(channel);
 			callbackContext.success();
-
 			return true;
 		}
 		else if (action.equalsIgnoreCase("unsubscribeFromChannel")){
-
 			String channel = args.optString(0);
-
-			PushService.unsubscribe(getApplicationContext(), channel);
-
+			ParsePush.unsubscribeInBackground(channel);
 			callbackContext.success();
-
 			return true;
 		}
 		else if (action.equalsIgnoreCase("getEndUserId")){
-
 			// no installation tokens on android
 			String endUserId = getUserId();
 			callbackContext.success(endUserId);
-
 			return true;
 		}
         else if (action.equalsIgnoreCase("getnotifications")) {
@@ -163,11 +124,8 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 	 * Sends a json object to the client as parameter to a method which is defined in gECB.
 	 */
 	public static void NotificationReceived(String json, boolean receivedInForeground, boolean coldStart) {
-
 		String state = receivedInForeground ? "foreground" : "background";
-
 		Log.v(TAG, "state: " + state + ", json:" + json + ", coldStart: " + coldStart);
-
 
 		/*
 
@@ -207,13 +165,9 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 					}
 				}
 			}
-
 			json = data.toString();
-
 		} catch(JSONException e){}
-
 		String js = "javascript:setTimeout(function(){window.parsePush.ontrigger('" + state + "',"+ json +")},0)";
-
 		if (canDeliverNotifications && !coldStart) {
 			gWebView.sendJavascript(js);
 		} else{
@@ -222,14 +176,12 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 
 	}
 
-
 	@Override
 	public void initialize(CordovaInterface cordova, CordovaWebView webView) {
 		super.initialize(cordova, webView);
 		gWebView = webView;
 		isInForeground = true;
 	}
-
 
 	@Override
 	public void onDestroy() {
@@ -267,8 +219,7 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 	{
 		return isInForeground;
 	}
-	
-	
+
 	public boolean hasTelephony(Context mContext)
 	{
 		TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
@@ -296,19 +247,16 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 
 		return retval;
 	}
-	
-	public String getUserId(){
 
+	public String getUserId(){
 		LocalStorage storage = new LocalStorage(this.cordova.getActivity(), ParsePushNotificationPlugin.STORAGE_KEY);
 		String androidId = storage.getItem("userId");
-
 		if(androidId != null){
 			return androidId;
 		}
-
 		androidId = Settings.Secure.getString(getActivity().getContentResolver(),Settings.Secure.ANDROID_ID);
-		// Another option is TechoTony's answer here: http://stackoverflow.com/questions/2322234/how-to-find-serial-number-of-android-device#2322494
 
+		// Another option is TechoTony's answer here: http://stackoverflow.com/questions/2322234/how-to-find-serial-number-of-android-device#2322494
 		Log.d(TAG, "Android id string = " + androidId);
 		if(androidId == null || androidId.equals("9774d56d682e549c")){
 			/* Many devices (and any emulator) such as the Droid 2 and Galaxy Tab report the same ID, so we need to construct a different one.
@@ -317,17 +265,15 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 			 */
 
 			Log.d(TAG,"Constructing new id");
-			 TelephonyManager telMgr = (TelephonyManager) getActivity().getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
+			TelephonyManager telMgr = (TelephonyManager) getActivity().getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
 
-			 if(telMgr != null && hasTelephony(getActivity())){
-
+			if(telMgr != null && hasTelephony(getActivity())){
 				androidId = telMgr.getDeviceId();
 			}
 			else{
-
 				/*
 				Serial Number
-					Since Android 2.3 (“Gingerbread”) this is available via android.os.Build.SERIAL.
+					Since Android 2.3 (���Gingerbread���) this is available via android.os.Build.SERIAL.
 					Devices without telephony are required to report a unique device ID here; some phones may do so also.
 				 */
 				androidId = android.os.Build.SERIAL;
@@ -368,7 +314,6 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 }
 
 class LocalStorage {
-	
 	public static final String FIRST_RUN = "First_Run";
 	public static final String IS_DEVICE_REGISTERED = "Is_Device_Registered";
 	public static final String LOCATIONS_REVISION = "Locations_Revision";
