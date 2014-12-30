@@ -36,7 +36,7 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 	private static boolean isInForeground = false;
 	private static boolean canDeliverNotifications = false;
 	private static ArrayList<String> callbackQueue = new ArrayList<String>();
-    private static JSONArray notifications = new JSONArray();
+	private static JSONArray notifications = new JSONArray();
 
 	/**
 	 * Gets the application context from cordova's main activity.
@@ -111,11 +111,12 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 			callbackContext.success(endUserId);
 			return true;
 		}
-        else if (action.equalsIgnoreCase("getnotifications")) {
-            callbackContext.success(notifications);
-            notifications = new JSONArray();
-            return true;
-        }
+		else if (action.equalsIgnoreCase("getnotifications")) {
+			Log.v(TAG, "getNotifications: " + notifications.toString());
+			callbackContext.success(notifications);
+			notifications = new JSONArray();
+			return true;
+		}
 
 		return false;
 	}
@@ -167,6 +168,8 @@ public class ParsePushNotificationPlugin extends CordovaPlugin {
 			}
 			json = data.toString();
 		} catch(JSONException e){}
+		notifications.put(json);
+		Log.v(TAG, "notifications: " + notifications.toString());
 		String js = "javascript:setTimeout(function(){window.parsePush.ontrigger('" + state + "',"+ json +")},0)";
 		if (canDeliverNotifications && !coldStart) {
 			gWebView.sendJavascript(js);
