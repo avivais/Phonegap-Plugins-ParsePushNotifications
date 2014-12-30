@@ -75,11 +75,19 @@
 						<action android:name="android.intent.action.USER_PRESENT" />
 				</intent-filter>
 			</receiver>
+
 			<receiver android:name="com.stratogos.cordova.parsePushNotifications.PushReceiver" android:exported="false">
 				<intent-filter>
 					<action android:name="com.parse.push.intent.RECEIVE" />
 					<action android:name="com.parse.push.intent.DELETE" />
 					<action android:name="com.parse.push.intent.OPEN" />
+				</intent-filter>
+			</receiver>
+
+			<receiver android:name="com.stratogos.cordova.parsePushNotifications.GCMReceiver">
+				<intent-filter>
+					<action android:name="com.google.android.c2dm.intent.RECEIVE" />
+					<category android:name="$PACKAGE_NAME" />
 				</intent-filter>
 			</receiver>
 
