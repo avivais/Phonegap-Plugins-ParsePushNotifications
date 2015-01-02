@@ -105,17 +105,13 @@ BOOL canDeliverNotifications = NO;
 + (void) checkForColdStartNotification:(NSNotification *)notification
 {
         NSDictionary *launchOptions = [notification userInfo];
-
         NSDictionary *payload = [launchOptions objectForKey: @"UIApplicationLaunchOptionsRemoteNotificationKey"];
 
         if(payload) {
-
                 NSMutableDictionary *extendedPayload = [payload mutableCopy];
                 [extendedPayload setObject:[NSNumber numberWithBool:NO] forKey:@"receivedInForeground"];
-
                 coldstartNotification = extendedPayload;
         }
-
 }
 
 - (void)unregister:(CDVInvokedUrlCommand*)command;
@@ -221,7 +217,6 @@ BOOL canDeliverNotifications = NO;
 
 
 - (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
-
         NSMutableDictionary *results = [NSMutableDictionary dictionary];
         NSString *token = [[[[deviceToken description] stringByReplacingOccurrencesOfString:@"<"withString:@""]
                             stringByReplacingOccurrencesOfString:@">" withString:@""]
@@ -232,6 +227,9 @@ BOOL canDeliverNotifications = NO;
 
         PFInstallation *currentInstallation = [PFInstallation currentInstallation];
         [currentInstallation setDeviceTokenFromData:deviceToken];
+        if (currentInstallation.badge != 0) {
+            currentInstallation.badge = 0;
+        }
         [currentInstallation saveInBackground];
         [self successWithMessage:[NSString stringWithFormat:@"%@", token]];
 #endif
@@ -281,7 +279,6 @@ BOOL canDeliverNotifications = NO;
 
         NSString *json = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 
-
         NSLog(@"Msg: %@", json);
 
         NSString * jsCallBack = [NSString stringWithFormat:@"setTimeout(function(){window.parsePush.ontrigger('%@', %@)},0)", stateName, json];
@@ -297,10 +294,9 @@ BOOL canDeliverNotifications = NO;
                 }
 
                 [jsEventQueue addObject:jsCallBack];
+                [PFAnalytics trackAppOpenedWithRemoteNotificationPayload:payload];
         }
-
 }
-
 
 
 - (void) didBecomeActive:(NSNotification *)notification

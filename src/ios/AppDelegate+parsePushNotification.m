@@ -3,6 +3,7 @@
 //  HelloWorld
 //
 //  Created by yoyo on 2/12/14.
+//  Updated by avivais on 1/1/15.
 //
 //
 
@@ -13,8 +14,36 @@
 #import <Parse/Parse.h>
 
 
-
 @implementation AppDelegate (parsePushNotification)
+
++ (void) load
+{
+    Method original, swizzled;
+
+    original = class_getInstanceMethod(self, @selector(init));
+    swizzled = class_getInstanceMethod(self, @selector(swizzled_init));
+    method_exchangeImplementations(original, swizzled);
+}
+
+- (AppDelegate *) swizzled_init
+{
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(parseTrackAppOpen:)
+                                                 name:@"UIApplicationDidFinishLaunchingNotification" object:nil];
+
+    // This actually calls the original init method over in AppDelegate. Equivilent to calling super
+    // on an overrided method, this is not recursive, although it appears that way. neat huh?
+    return [self swizzled_init];
+}
+
+- (void) parseTrackAppOpen:(NSNotification *)notification
+{
+    if (notification)
+    {
+        NSDictionary *launchOptions = [notification userInfo];
+        [Parse setApplicationId:@"appId" clientKey:@"clientKey"];
+        [PFAnalytics trackAppOpenedWithLaunchOptions:launchOptions];
+    }
+}
 
 - (void) application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
 {
@@ -28,12 +57,11 @@
     [pushHandler didFailToRegisterForRemoteNotificationsWithError:error];
 }
 
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)payload
+- (void) application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)payload
 {
     
     NSLog(@"didReceiveRemoteNotification");
     UIApplicationState appstate = [[UIApplication sharedApplication] applicationState];
-    
     
     NSMutableDictionary *extendedPayload = [payload mutableCopy];
     [extendedPayload setObject:[NSNumber numberWithBool:(appstate == UIApplicationStateActive)] forKey:@"receivedInForeground"];
@@ -46,6 +74,5 @@
 {
     return [self.viewController getCommandInstance:className];
 }
-
 
 @end
