@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.parse.ParseAnalytics;
 import com.parse.ParsePushBroadcastReceiver;
 
 public class PushReceiver extends ParsePushBroadcastReceiver {
