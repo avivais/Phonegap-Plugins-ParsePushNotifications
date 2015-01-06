@@ -40,7 +40,7 @@
     if (notification)
     {
         NSDictionary *launchOptions = [notification userInfo];
-        [Parse setApplicationId:@"appId" clientKey:@"clientKey"];
+        [Parse setApplicationId:@"r7aHNhWLVVZeLMj36TngO5j8pUrgAtx3CkwhGuW6" clientKey:@"WXBNgQEIplGqUfDGQliScPXvPo21mzWPi1Z2wttb"];
         [PFAnalytics trackAppOpenedWithLaunchOptions:launchOptions];
     }
 }
