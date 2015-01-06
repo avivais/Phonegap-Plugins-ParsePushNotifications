@@ -1,6 +1,5 @@
 package com.stratogos.cordova.parsePushNotifications;
 
-import mobi.fabula.CordovaApp;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -19,9 +18,11 @@ public class PushReceiver extends ParsePushBroadcastReceiver {
             ParsePushNotificationPlugin.NotificationReceived(extras.getString("com.parse.Data"), false, !isPluginActive);
         }
         Log.v(TAG, "onPushOpen: " + extras.toString());
-        Intent i = new Intent(context, CordovaApp.class);
+        Intent i = new Intent(context, getActivity(context, intent));
         i.putExtras(extras);
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        ParseAnalytics.trackAppOpenedInBackground(i);
+        Log.v(TAG, "onPushOpen: " + extras.toString());
         context.startActivity(i);
     }
 }
