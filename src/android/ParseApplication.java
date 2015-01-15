@@ -13,7 +13,7 @@ public class ParseApplication extends Application {
     }
 
     public void onCreate(){
-        Parse.initialize(getApplicationContext(), "r7aHNhWLVVZeLMj36TngO5j8pUrgAtx3CkwhGuW6", "WXBNgQEIplGqUfDGQliScPXvPo21mzWPi1Z2wttb");
+        Parse.initialize(getApplicationContext(), "appId", "clientKey");
         ParseInstallation.getCurrentInstallation().saveInBackground();
         ParseUser.enableAutomaticUser();
         ParseACL defaultACL = new ParseACL();
