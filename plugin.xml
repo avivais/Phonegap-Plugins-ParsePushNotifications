@@ -108,6 +108,7 @@
 		<source-file src="src/android/ParseApplication.java" target-dir="src/com/stratogos/cordova/parsePushNotifications/" />
 		<source-file src="src/android/lib/Android/gcm.jar" target-dir="libs/" framework="true" />
 		<source-file src="src/android/lib/Parse/Parse-1.8.0.jar" target-dir="libs/" framework="true" />
+		<source-file src="src/android/lib/Parse/bolts-android-1.1.2.jar" target-dir="libs/" framework="true" />
 		<source-file src="src/android/lib/Parse/Parse-1.8.0.jar.properties" target-dir="libs/" framework="true" />
 		<source-file src="src/android/lib/Parse/Parse-1.8.0-javadoc" target-dir="libs/" framework="true" />
 	</platform>
