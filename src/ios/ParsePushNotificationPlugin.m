@@ -19,6 +19,7 @@ static NSDictionary *coldstartNotification;
 
 NSMutableArray *jsEventQueue;
 BOOL canDeliverNotifications = NO;
+BOOL openFromPush = NO;
 
 /*
    Ideally the UIApplicationDidFinishLaunchingNotification would go in pluginInitialize
@@ -60,6 +61,7 @@ BOOL canDeliverNotifications = NO;
         
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         [self.pendingNotifications removeAllObjects];
+        openFromPush = NO;
     }];
 }
 
@@ -111,6 +113,7 @@ BOOL canDeliverNotifications = NO;
                 NSMutableDictionary *extendedPayload = [payload mutableCopy];
                 [extendedPayload setObject:[NSNumber numberWithBool:NO] forKey:@"receivedInForeground"];
                 coldstartNotification = extendedPayload;
+                openFromPush = YES;
         }
 }
 
@@ -285,17 +288,20 @@ BOOL canDeliverNotifications = NO;
 
         if(receivedInForeground) {
                 [self.webView stringByEvaluatingJavaScriptFromString:jsCallBack];
+                [self.pendingNotifications removeAllObjects];
         }
         else
         {
+            if (!openFromPush) {
                 if(jsEventQueue == nil)
                 {
                         jsEventQueue = [[NSMutableArray alloc] init];
                 }
 
                 [jsEventQueue addObject:jsCallBack];
-                [PFAnalytics trackAppOpenedWithRemoteNotificationPayload:payload];
+            }
         }
+        [PFAnalytics trackAppOpenedWithRemoteNotificationPayload:payload];
 }
 
 
