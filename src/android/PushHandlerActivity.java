@@ -9,53 +9,53 @@ import com.parse.ParseAnalytics;
 
 public class PushHandlerActivity extends Activity
 {
-    private static String TAG = "PushHandlerActivity";
+	private static String TAG = "PushHandlerActivity";
 
-    /*
-     * this activity will be started if the user touches a notification that we own.
-     * We send it's data off to the push plugin for processing.
-     * If needed, we boot up the main activity to kickstart the application.
-     * @see android.app.Activity#onCreate(android.os.Bundle)
-     */
-    @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
-        super.onCreate(savedInstanceState);
-        Log.v(TAG, "onCreate");
+	/*
+	 * this activity will be started if the user touches a notification that we own.
+	 * We send it's data off to the push plugin for processing.
+	 * If needed, we boot up the main activity to kickstart the application.
+	 * @see android.app.Activity#onCreate(android.os.Bundle)
+	 */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		Log.v(TAG, "onCreate");
 
-        ParseAnalytics.trackAppOpenedInBackground(getIntent());
-        boolean isPluginActive = ParsePushNotificationPlugin.isActive();
-        processPushBundle(isPluginActive);
+		ParseAnalytics.trackAppOpenedInBackground(getIntent());
+		boolean isPluginActive = ParsePushNotificationPlugin.isActive();
+		processPushBundle(isPluginActive);
 
-        finish();
+		finish();
 
-        if (!isPluginActive) {
-            forceMainActivityReload();
-        }
-    }
+		if (!isPluginActive) {
+			forceMainActivityReload();
+		}
+	}
 
-    /**
-     * Takes the pushBundle extras from the intent,
-     * and sends it through to the Plugin for processing.
-     */
-    private void processPushBundle(boolean isPluginActive)
-    {
-        Log.v(TAG, "processPushBundle, isActive: " + isPluginActive);
-        Bundle extras = getIntent().getExtras();
+	/**
+	 * Takes the pushBundle extras from the intent,
+	 * and sends it through to the Plugin for processing.
+	 */
+	private void processPushBundle(boolean isPluginActive)
+	{
+		Log.v(TAG, "processPushBundle, isActive: " + isPluginActive);
+		Bundle extras = getIntent().getExtras();
 
-        if (extras != null) {
-            ParsePushNotificationPlugin.NotificationReceived(extras.getString("com.parse.Data"), false, !isPluginActive);
-        }
-    }
+		if (extras != null) {
+			ParsePushNotificationPlugin.NotificationReceived(extras.getString("com.parse.Data"), ParsePushNotificationPlugin.isInForeground(), !isPluginActive);
+		}
+	}
 
-    /**
-     * Forces the main activity to re-launch if it's unloaded.
-     */
-    private void forceMainActivityReload()
-    {
-        PackageManager pm = getPackageManager();
-        Intent launchIntent = pm.getLaunchIntentForPackage(getApplicationContext().getPackageName());
-        startActivity(launchIntent);
-    }
+	/**
+	 * Forces the main activity to re-launch if it's unloaded.
+	 */
+	private void forceMainActivityReload()
+	{
+		PackageManager pm = getPackageManager();
+		Intent launchIntent = pm.getLaunchIntentForPackage(getApplicationContext().getPackageName());
+		startActivity(launchIntent);
+	}
 
 }

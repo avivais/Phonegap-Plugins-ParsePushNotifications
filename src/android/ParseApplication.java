@@ -8,15 +8,15 @@ import com.parse.ParseInstallation;
 
 public class ParseApplication extends Application {
 
-    public ParseApplication(){
-        super();
-    }
+	public ParseApplication(){
+		super();
+	}
 
-    public void onCreate(){
-        Parse.initialize(getApplicationContext(), "appId", "clientKey");
-        ParseInstallation.getCurrentInstallation().saveInBackground();
-        ParseUser.enableAutomaticUser();
-        ParseACL defaultACL = new ParseACL();
-        ParseACL.setDefaultACL(defaultACL, true);
-    }
+	public void onCreate(){
+		Parse.initialize(getApplicationContext(), "appId", "clientKey");
+		ParseInstallation.getCurrentInstallation().saveInBackground();
+		ParseUser.enableAutomaticUser();
+		ParseACL defaultACL = new ParseACL();
+		ParseACL.setDefaultACL(defaultACL, true);
+	}
 }
